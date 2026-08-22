@@ -1,0 +1,26 @@
+{
+  "version": "1.1.0",
+  "brand": {
+    "primary": "white",
+    "accent": "#FFCC00",
+    "ink": "#111111"
+  },
+  "scope": "Region de Kaolack uniquement",
+  "commission": {
+    "yobalema_percent": 10,
+    "driver_percent": 90
+  },
+  "pricing": {
+    "traffic_factors": {
+      "normal": 1.0,
+      "moderate": 1.05,
+      "high": 1.1,
+      "exceptional": 1.15
+    },
+    "night_extra_fcfa": {
+      "village": 100,
+      "city_or_periurban": 200
+    },
+    "max_fare_fcfa": 5000
+  }
+}
