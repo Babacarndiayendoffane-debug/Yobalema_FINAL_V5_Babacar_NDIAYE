@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Yobalema (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=3000",
+        "--web-hostname=127.0.0.1",
+        "--web-browser-flag=--disable-search-engine-choice-screen",
+        "--web-browser-flag=--remote-allow-origins=*",
+        "--web-browser-flag=--disable-web-security"
+      ]
+    },
+    {
+      "name": "Yobalema (Edge)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "edge",
+      "args": [
+        "--web-port=3000",
+        "--web-hostname=127.0.0.1"
+      ]
+    }
+  ]
+}
