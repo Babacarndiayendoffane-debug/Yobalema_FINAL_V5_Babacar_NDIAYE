@@ -1,6 +1,6 @@
 {
-  "name": "yobalema-backend-v4",
-  "version": "4.0.0",
+  "name": "yobalema-backend-v5",
+  "version": "5.0.0",
   "private": true,
   "scripts": {
     "dev": "tsx src/server.ts",
@@ -9,7 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts",
-    "test": "tsx tests/smoke.ts"
+    "test": "tsx tests/smoke.ts && tsx tests/masterclass.smoke.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
