@@ -106,8 +106,6 @@ class Ride {
 }
 
 class RegionKaolack {
-  // Catalogue de travail : les coordonnées devront être vérifiées avant
-  // le lancement commercial. Le périmètre métier reste la région de Kaolack.
   static const communes = <Commune>[
     Commune('Kaolack', 'Kaolack', LatLng(14.1510, -16.0726), ZoneType.city),
     Commune('Kahone', 'Kaolack', LatLng(14.1560, -16.0400), ZoneType.periurban),
@@ -166,7 +164,6 @@ class Pricing {
     required ZoneType zone,
     required int trafficLevel,
   }) {
-    // TrafficLevel 0..3. Le coefficient reste volontairement plafonné.
     if (zone == ZoneType.village) return 1.0;
     if (trafficLevel <= 0) return 1.0;
     if (trafficLevel == 1) return 1.05;
@@ -216,7 +213,6 @@ class Pricing {
       total += zone == ZoneType.village ? 100 : 200;
     }
 
-    // Plafond raisonnable pour éviter une flambée tarifaire.
     total = total.clamp(300, 5000);
     final rounded = ((total / 50).round() * 50).toInt();
     final driver = (rounded * 0.90).round();
@@ -270,17 +266,18 @@ class _AuthScreenState extends State<AuthScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeScreen(role: role, phone: phone.text.trim(), api: api, user: Map<String, dynamic>.from(data['user'] ?? {})),
+          builder: (_) => HomeScreen(
+            role: role,
+            phone: phone.text.trim(),
+            api: api,
+            user: Map<String, dynamic>.from(data['user'] ?? {}),
+          ),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-  SnackBar(
-    content: Text(
-      e.toString().replaceFirst('Exception: ', ''),
-    ),
-  ),
-);
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -315,11 +312,17 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: const Icon(Icons.two_wheeler, size: 48, color: YobalemaApp.ink),
                   ),
                   const SizedBox(height: 18),
-                  const Text('Yobalema', textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: YobalemaApp.ink)),
+                  const Text(
+                    'Yobalema',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: YobalemaApp.ink),
+                  ),
                   const SizedBox(height: 4),
-                  const Text('La mobilité qui rapproche Kaolack.',
-                      textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+                  const Text(
+                    'La mobilité qui rapproche Kaolack.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54),
+                  ),
                   const SizedBox(height: 30),
                   SegmentedButton<Role>(
                     segments: const [
@@ -330,16 +333,30 @@ class _AuthScreenState extends State<AuthScreen> {
                     onSelectionChanged: (v) => setState(() => role = v.first),
                   ),
                   const SizedBox(height: 18),
-                  TextField(controller: name,
-                      decoration: const InputDecoration(labelText: 'Nom complet', prefixIcon: Icon(Icons.badge))),
+                  TextField(
+                    controller: name,
+                    decoration: const InputDecoration(labelText: 'Nom complet', prefixIcon: Icon(Icons.badge)),
+                  ),
                   const SizedBox(height: 12),
-                  TextField(controller: phone, keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Numéro de téléphone', prefixIcon: Icon(Icons.phone))),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Numéro de téléphone', prefixIcon: Icon(Icons.phone)),
+                  ),
                   const SizedBox(height: 12),
-                  TextField(controller: password, obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Mot de passe', prefixIcon: Icon(Icons.lock))),
+                  TextField(
+                    controller: password,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Mot de passe', prefixIcon: Icon(Icons.lock)),
+                  ),
                   const SizedBox(height: 18),
-                  ElevatedButton.icon(onPressed: loading ? null : login, icon: loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.arrow_forward), label: Text(loading ? 'Connexion...' : 'Continuer')),
+                  ElevatedButton.icon(
+                    onPressed: loading ? null : login,
+                    icon: loading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.arrow_forward),
+                    label: Text(loading ? 'Connexion...' : 'Continuer'),
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     '© 2026 Yobalema — Créée par Babacar NDIAYE',
@@ -368,6 +385,7 @@ class HomeScreen extends StatefulWidget {
   final YobalemaApi api;
   final Map<String, dynamic> user;
   const HomeScreen({super.key, required this.role, required this.phone, required this.api, required this.user});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -388,12 +406,17 @@ class _HomeScreenState extends State<HomeScreen> {
   PriceQuote? quote;
   Timer? gpsTimer;
   LatLng? liveDriverPosition;
+  List<LatLng> roadRoute = const [];
+  double? roadDistanceKm;
+  double? roadDurationMin;
+  bool routing = false;
 
   @override
   void initState() {
     super.initState();
     from = RegionKaolack.communes.firstWhere((c) => c.name == 'Ndoffane');
     to = RegionKaolack.communes.firstWhere((c) => c.name == 'Kaolack');
+    _refreshRoute();
     _reprice();
     widget.api.connectSocket(
       onRideNew: widget.role == Role.driver ? _onRideNew : null,
@@ -402,8 +425,55 @@ class _HomeScreenState extends State<HomeScreen> {
       userId: widget.user['id']?.toString(),
       role: widget.role == Role.driver ? 'DRIVER' : 'PASSENGER',
       onRideStatus: _onRideStatus,
+      onRideLocation: _onRideLocation,
     );
     backendReady = true;
+  }
+
+  Future<void> _refreshRoute() async {
+    if (routing) return;
+    routing = true;
+    if (mounted) setState(() {});
+    final result = await widget.api.roadRoute(
+      fromLat: from.point.latitude,
+      fromLng: from.point.longitude,
+      toLat: to.point.latitude,
+      toLng: to.point.longitude,
+    );
+    if (!mounted) return;
+    setState(() {
+      routing = false;
+      if (result == null) {
+        roadRoute = const [];
+        roadDistanceKm = null;
+        roadDurationMin = null;
+        distanceKm = _straightLineKm(from.point, to.point);
+      } else {
+        final points = (result['points'] as List<dynamic>)
+            .map((p) => LatLng(
+                  (p['lat'] as num).toDouble(),
+                  (p['lng'] as num).toDouble(),
+                ))
+            .toList(growable: false);
+        roadRoute = points;
+        roadDistanceKm = (result['distanceKm'] as num).toDouble();
+        roadDurationMin = (result['durationMin'] as num).toDouble();
+        distanceKm = roadDistanceKm!;
+      }
+    });
+    await _reprice();
+  }
+
+  double _straightLineKm(LatLng a, LatLng b) {
+    const r = 6371.0;
+    final dLat = (b.latitude - a.latitude) * 3.141592653589793 / 180;
+    final dLng = (b.longitude - a.longitude) * 3.141592653589793 / 180;
+    final la1 = a.latitude * 3.141592653589793 / 180;
+    final la2 = b.latitude * 3.141592653589793 / 180;
+    final h = (1 - (dLat.cos() * 0 + 0)); 
+    final x = (dLat / 2).sin() * (dLat / 2).sin() +
+        la1.cos() * la2.cos() * (dLng / 2).sin() * (dLng / 2).sin();
+    return r * 2 * x.sqrt().atan2((1 - x).sqrt());
   }
 
   Future<void> _reprice() async {
@@ -417,20 +487,35 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() => quote = local);
     try {
       final data = await widget.api.quote(
-        fromName: from.name, toName: to.name,
-        fromLat: from.point.latitude, fromLng: from.point.longitude,
-        toLat: to.point.latitude, toLng: to.point.longitude,
-        fromZone: _zone(from.zone), toZone: _zone(to.zone),
-        trafficLevel: trafficLevel, night: night,
+        fromName: from.name,
+        toName: to.name,
+        fromLat: from.point.latitude,
+        fromLng: from.point.longitude,
+        toLat: to.point.latitude,
+        toLng: to.point.longitude,
+        fromZone: _zone(from.zone),
+        toZone: _zone(to.zone),
+        trafficLevel: trafficLevel,
+        night: night,
       );
       final total = (data['total'] as num).round();
       final driver = (data['driver'] as num).round();
       final platform = (data['platform'] as num).round();
       final factor = (data['trafficFactor'] as num?)?.toDouble() ?? 1.0;
-      if (mounted) setState(() => quote = PriceQuote(total: total, driver: driver, platform: platform, trafficFactor: factor, explanation: data['explanation']?.toString() ?? local.explanation));
-    } catch (_) {
-      // Le devis local reste disponible si le serveur est temporairement indisponible.
-    }
+      final serverKm = (data['distanceKm'] as num?)?.toDouble();
+      if (mounted) {
+        setState(() {
+          quote = PriceQuote(
+            total: total,
+            driver: driver,
+            platform: platform,
+            trafficFactor: factor,
+            explanation: data['explanation']?.toString() ?? local.explanation,
+          );
+          if (serverKm != null && roadRoute.isEmpty) distanceKm = serverKm;
+        });
+      }
+    } catch (_) {}
   }
 
   String _zone(ZoneType z) => z == ZoneType.city ? 'CITY' : z == ZoneType.periurban ? 'PERIURBAN' : 'VILLAGE';
@@ -465,11 +550,17 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => searching = true);
     try {
       final data = await widget.api.createRide(
-        fromName: from.name, toName: to.name,
-        fromLat: from.point.latitude, fromLng: from.point.longitude,
-        toLat: to.point.latitude, toLng: to.point.longitude,
-        fromZone: _zone(from.zone), toZone: _zone(to.zone),
-        trafficLevel: trafficLevel, night: night, shareTrip: shareTrip,
+        fromName: from.name,
+        toName: to.name,
+        fromLat: from.point.latitude,
+        fromLng: from.point.longitude,
+        toLat: to.point.latitude,
+        toLng: to.point.longitude,
+        fromZone: _zone(from.zone),
+        toZone: _zone(to.zone),
+        trafficLevel: trafficLevel,
+        night: night,
+        shareTrip: shareTrip,
       );
       final ride = Map<String, dynamic>.from(data['ride']);
       activeRideId = ride['id']?.toString();
@@ -484,8 +575,15 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Course créée'),
-          content: Text('${from.name} → ${to.name}\nPrix : $total FCFA\n\nRecherche d’un chauffeur en temps réel...'),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Compris'))],
+          content: Text(
+            '${from.name} → ${to.name}\nPrix : $total FCFA\n'
+            '${roadDistanceKm != null ? 'Route : ${roadDistanceKm!.toStringAsFixed(1)} km\n' : ''}'
+            '${roadDurationMin != null ? 'ETA : ${roadDurationMin!.toStringAsFixed(0)} min\n' : ''}'
+            '\nRecherche d’un chauffeur en temps réel...',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Compris')),
+          ],
         ),
       );
     } catch (e) {
@@ -502,7 +600,11 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: const Text('Course pour vous'),
-        content: Text('${data['from'] ?? ''} → ${data['to'] ?? ''}\nPrix : ${data['priceFcfa'] ?? 0} FCFA\nDistance vers le départ : ${data['distanceKm'] ?? '--'} km'),
+        content: Text(
+          '${data['from'] ?? ''} → ${data['to'] ?? ''}\n'
+          'Prix : ${data['priceFcfa'] ?? 0} FCFA\n'
+          'Distance vers le départ : ${data['distanceKm'] ?? '--'} km',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Plus tard')),
           ElevatedButton(
@@ -559,6 +661,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onRideStatus(Map<String, dynamic> data) {
     if (activeRideId != data['rideId']?.toString()) return;
     _toast('Statut de la course : ${data['status']}');
+  }
+
+  void _onRideLocation(Map<String, dynamic> data) {
+    if (activeRideId != data['rideId']?.toString()) return;
+    final lat = (data['lat'] as num?)?.toDouble();
+    final lng = (data['lng'] as num?)?.toDouble();
+    if (lat == null || lng == null || !lat.isFinite || !lng.isFinite) return;
+    if (!mounted) return;
+    setState(() => liveDriverPosition = LatLng(lat, lng));
   }
 
   void driverPanel() {
@@ -672,6 +783,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final q = quote!;
+    final displayRoute = roadRoute.length >= 2 ? roadRoute : [from.point, to.point];
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -685,16 +797,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 subdomains: const ['a', 'b', 'c'],
                 userAgentPackageName: 'com.yobalema.app',
               ),
-              PolylineLayer(polylines: [
-                Polyline(points: [from.point, to.point], strokeWidth: 4, color: YobalemaApp.yellow),
-              ]),
-              MarkerLayer(markers: [
-                if (liveDriverPosition != null) Marker(point: liveDriverPosition!, width: 46, height: 46, child: const Icon(Icons.two_wheeler, size: 34, color: YobalemaApp.green)),
-                Marker(point: from.point, width: 42, height: 42,
-                    child: const Icon(Icons.location_pin, size: 42, color: YobalemaApp.ink)),
-                Marker(point: to.point, width: 42, height: 42,
-                    child: const Icon(Icons.flag, size: 38, color: YobalemaApp.yellow)),
-              ]),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: displayRoute,
+                    strokeWidth: routing ? 3 : 5,
+                    color: YobalemaApp.yellow,
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  if (liveDriverPosition != null)
+                    Marker(
+                      point: liveDriverPosition!,
+                      width: 46,
+                      height: 46,
+                      child: const Icon(Icons.two_wheeler, size: 34, color: YobalemaApp.green),
+                    ),
+                  Marker(
+                    point: from.point,
+                    width: 42,
+                    height: 42,
+                    child: const Icon(Icons.location_pin, size: 42, color: YobalemaApp.ink),
+                  ),
+                  Marker(
+                    point: to.point,
+                    width: 42,
+                    height: 42,
+                    child: const Icon(Icons.flag, size: 38, color: YobalemaApp.yellow),
+                  ),
+                ],
+              ),
             ],
           ),
           SafeArea(
@@ -710,8 +844,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(color: backendReady ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(20)),
-                    child: Row(children: [Icon(Icons.circle, size: 9, color: backendReady ? YobalemaApp.green : Colors.orange), const SizedBox(width: 5), Text(backendReady ? 'Serveur' : 'Local', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))]),
+                    decoration: BoxDecoration(
+                      color: backendReady ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.circle, size: 9, color: backendReady ? YobalemaApp.green : Colors.orange),
+                        const SizedBox(width: 5),
+                        Text(backendReady ? 'Serveur' : 'Local', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   _CircleButton(icon: widget.role == Role.driver ? Icons.two_wheeler : Icons.person, onTap: driverPanel),
@@ -743,6 +886,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.alt_route, size: 17),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            roadDistanceKm != null
+                                ? '${roadDistanceKm!.toStringAsFixed(1)} km sur route • ${roadDurationMin?.toStringAsFixed(0) ?? '--'} min'
+                                : 'Calcul de l’itinéraire routier...',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (routing)
+                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(q.explanation, style: const TextStyle(fontSize: 12, color: Colors.black54)),
@@ -751,13 +911,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     _selectBox('Départ', from, (v) {
                       if (v == null) return;
                       setState(() => from = v);
-                      _reprice();
+                      _refreshRoute();
                     }),
                     const SizedBox(height: 8),
                     _selectBox('Destination', to, (v) {
                       if (v == null) return;
                       setState(() => to = v);
-                      _reprice();
+                      _refreshRoute();
                     }),
                     const SizedBox(height: 8),
                     Row(
@@ -838,11 +998,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _selectBox(String label, Commune value, ValueChanged<Commune?> onChanged) {
     return DropdownButtonFormField<Commune>(
       initialValue: value,
-      decoration: InputDecoration(labelText: label, prefixIcon: Icon(label == 'Départ' ? Icons.my_location : Icons.location_on)),
-      items: RegionKaolack.communes.map((c) => DropdownMenuItem(
-        value: c,
-        child: Text('${c.name} • ${c.department}'),
-      )).toList(),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(label == 'Départ' ? Icons.my_location : Icons.location_on),
+      ),
+      items: RegionKaolack.communes
+          .map((c) => DropdownMenuItem(
+                value: c,
+                child: Text('${c.name} • ${c.department}'),
+              ))
+          .toList(),
       onChanged: onChanged,
     );
   }
@@ -866,13 +1031,15 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(icon, size: 19),
             const SizedBox(width: 7),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 10, color: Colors.black54)),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            )),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 10, color: Colors.black54)),
+                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -884,46 +1051,50 @@ class _CircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   const _CircleButton({required this.icon, required this.onTap});
+
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    elevation: 4,
-    shape: const CircleBorder(),
-    child: InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(icon, color: YobalemaApp.ink),
-      ),
-    ),
-  );
+        color: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: YobalemaApp.ink),
+          ),
+        ),
+      );
 }
 
 class _InfoCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String text;
-  const _InfoCard({required this.icon, required this.title, required this.text});
+  const _InfoCard({required this.icon, required this.title, required this.text,});
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF7F7F7),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Row(
-      children: [
-        const Icon(Icons.location_on, color: YobalemaApp.yellow),
-        const SizedBox(width: 10),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F7F7),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(text, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            const Icon(Icons.location_on, color: YobalemaApp.yellow),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(text, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                ],
+              ),
+            ),
           ],
-        )),
-      ],
-    ),
-  );
+        ),
+      );
 }
