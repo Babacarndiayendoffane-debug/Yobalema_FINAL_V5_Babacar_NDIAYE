@@ -1,7 +1,15 @@
+export type RoutePoint = { lat: number; lng: number };
+
 export type RouteResult = {
   distanceKm: number;
   durationMin: number;
-  geometry?: unknown;
+  geometry: RoutePoint[];
+};
+
+type OsrmRoute = {
+  distance?: number;
+  duration?: number;
+  geometry?: { coordinates?: Array<[number, number]> };
 };
 
 export async function routeRoad(fromLat: number, fromLng: number, toLat: number, toLng: number): Promise<RouteResult | null> {
@@ -13,15 +21,20 @@ export async function routeRoad(fromLat: number, fromLng: number, toLat: number,
       signal: AbortSignal.timeout(7000),
     });
     if (!response.ok) return null;
-    const payload = await response.json() as {
-      routes?: Array<{ distance?: number; duration?: number; geometry?: unknown }>;
-    };
+    const payload = await response.json() as { routes?: OsrmRoute[] };
     const route = payload.routes?.[0];
-    if (!route || !Number.isFinite(route.distance) || !Number.isFinite(route.duration)) return null;
+    const coords = route?.geometry?.coordinates;
+    if (!route || !Number.isFinite(route.distance) || !Number.isFinite(route.duration) || !coords?.length) return null;
+
+    const geometry = coords
+      .filter(([lng, lat]) => Number.isFinite(lat) && Number.isFinite(lng))
+      .map(([lng, lat]) => ({ lat, lng }));
+    if (geometry.length < 2) return null;
+
     return {
-      distanceKm: route.distance / 1000,
-      durationMin: route.duration / 60,
-      geometry: route.geometry,
+      distanceKm: route.distance! / 1000,
+      durationMin: route.duration! / 60,
+      geometry,
     };
   } catch {
     return null;
