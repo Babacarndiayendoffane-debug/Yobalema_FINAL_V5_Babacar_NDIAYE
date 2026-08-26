@@ -1,21 +1,40 @@
-# Yobalema V3 — backend production-ready starter
+# Yobalema V5 — Masterclass Moto
 
-Cette V3 ajoute les briques nécessaires avant une mise en production : OTP téléphone, vérification des chauffeurs, OTP de prise en charge, paiements Wave/Orange Money en mode **adaptateur** (la confirmation est simulée tant que les clés opérateur ne sont pas configurées), notation 1–5, statistiques et Socket.IO authentifié.
+Yobalema est une plateforme de mobilité **100 % MOTO**, conçue d'abord pour toute la région administrative de Kaolack.
 
-## Démarrage
-1. Copier `.env.example` vers `.env`.
-2. `docker compose up -d`
-3. `npm install`
-4. `npx prisma generate`
-5. `npx prisma migrate dev --name v3`
-6. `npm run seed`
-7. `npm run dev`
+## Principes non négociables
+- Une seule catégorie de véhicule : `MOTO`.
+- Périmètre : toute la région de Kaolack, pas seulement la ville de Kaolack.
+- Route et distance : priorité au routage réel OSRM, jamais à la distance à vol d'oiseau pour facturer une course.
+- Prix : simples, raisonnables et affichés avant validation.
+- Commission : **10 % Yobalema / 90 % chauffeur**, fixe.
+- Sécurité : chauffeur vérifié, PIN de prise en charge, suivi temps réel et contrôles backend.
+- Paiements : CASH disponible ; Wave et Orange Money restent des intégrations officielles à brancher, sans faux statut payé.
 
-## Paiements
-Les endpoints `POST /api/rides/:id/payment/confirm` attendent un `providerRef`. Ils constituent le point d'intégration avec l'API officielle Wave ou Orange Money. Aucun faux paiement n'est présenté comme réel.
+## Architecture
+- `backend/yobalema_backend` : Node.js + TypeScript + Express + Prisma + PostgreSQL + Socket.IO.
+- `flutter/Yobalema_Kaolack_Updated_White` : client Flutter Passenger/Driver.
+- `src/geo.ts` : validation géographique Kaolack par frontière polygonale.
+- `src/routing.ts` : service de routage routier OSRM avec timeout et fallback.
+- `src/pricing.ts` : tarification locale et partage 10/90.
+- `src/prisma.ts` : garde-fous de persistance pour empêcher une catégorie automobile ou un partage de commission incohérent.
 
-## OTP
-Pour le développement, les endpoints retournent `devOtp`. En production, supprimer ce champ et brancher un fournisseur SMS.
+## Niveau produit visé
+Yobalema doit atteindre les standards de fiabilité d'une plateforme mondiale :
 
-## Sécurité
-Le Socket.IO exige `handshake.auth.userId`; pour une production stricte, remplacer ce mécanisme par un JWT Socket.IO vérifié côté serveur.
+**Passenger** : départ/destination précis, ETA, itinéraire réel, prix upfront, recherche chauffeur, suivi en direct, PIN, sécurité, paiement, historique, notation.
+
+**Driver** : onboarding et vérification, ONLINE/OFFLINE, demandes en temps réel, navigation, revenus, portefeuille, historique, notifications et outils de performance.
+
+**Operations** : support, supervision, statistiques, contrôle des chauffeurs et traçabilité des paiements.
+
+## Tests backend
+```bash
+npm run build
+npm test
+```
+
+Les smoke tests couvrent notamment les tarifs locaux, le partage 10/90 et des points intérieurs/extérieurs à Kaolack.
+
+## Production
+Avant exploitation commerciale : HTTPS, secrets dédiés, CORS strict, SMS OTP réel, API officielles Wave/Orange Money, push FCM/APNs, PostgreSQL managé + sauvegardes, monitoring, conformité juridique et vérification des documents chauffeurs.
