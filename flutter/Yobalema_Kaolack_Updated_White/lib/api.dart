@@ -7,6 +7,10 @@ class ApiConfig {
     'YobalemaApiUrl',
     defaultValue: 'http://10.0.2.2:4000',
   );
+  static const routingUrl = String.fromEnvironment(
+    'YobalemaRoutingUrl',
+    defaultValue: 'https://router.project-osrm.org',
+  );
 }
 
 class YobalemaApi {
@@ -75,6 +79,41 @@ class YobalemaApi {
       }),
     );
     return _decode(r);
+  }
+
+  Future<Map<String, dynamic>?> roadRoute({
+    required double fromLat,
+    required double fromLng,
+    required double toLat,
+    required double toLng,
+  }) async {
+    final uri = Uri.parse(
+      '${ApiConfig.routingUrl}/route/v1/driving/$fromLng,$fromLat;$toLng,$toLat?overview=full&geometries=geojson&steps=false',
+    );
+    try {
+      final r = await http.get(uri, headers: const {'Accept': 'application/json'});
+      if (r.statusCode < 200 || r.statusCode >= 300) return null;
+      final body = jsonDecode(r.body);
+      if (body is! Map || body['routes'] is! List || (body['routes'] as List).isEmpty) return null;
+      final route = Map<String, dynamic>.from((body['routes'] as List).first as Map);
+      final geometry = route['geometry'];
+      if (geometry is! Map || geometry['coordinates'] is! List) return null;
+      final points = <Map<String, double>>[];
+      for (final item in geometry['coordinates']) {
+        if (item is! List || item.length < 2) continue;
+        final lng = (item[0] as num).toDouble();
+        final lat = (item[1] as num).toDouble();
+        if (lat.isFinite && lng.isFinite) points.add({'lat': lat, 'lng': lng});
+      }
+      if (points.length < 2) return null;
+      return {
+        'distanceKm': ((route['distance'] as num?)?.toDouble() ?? 0) / 1000,
+        'durationMin': ((route['duration'] as num?)?.toDouble() ?? 0) / 60,
+        'points': points,
+      };
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>> createRide({
@@ -191,7 +230,6 @@ class YobalemaApi {
   void joinRide(String rideId) => socket?.emit('ride:join', rideId);
   void dispose() => socket?.dispose();
 
-
   Future<Map<String, dynamic>> requestOtp() async {
     final r = await http.post(Uri.parse('${ApiConfig.baseUrl}/api/auth/request-otp'), headers: _headers);
     return _decode(r);
@@ -226,7 +264,6 @@ class YobalemaApi {
     final r = await http.post(Uri.parse('${ApiConfig.baseUrl}/api/rides/$rideId/rating'), headers: _headers, body: jsonEncode({'score': score, if (comment != null) 'comment': comment}));
     return _decode(r);
   }
-
 
   Future<List<dynamic>> notifications() async {
     final r = await http.get(Uri.parse('${ApiConfig.baseUrl}/api/notifications'), headers: _headers);
