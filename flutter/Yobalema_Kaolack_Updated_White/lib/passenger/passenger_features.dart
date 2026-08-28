@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api.dart';
-import 'auth/passenger_auth_screen.dart';
+import '../core/network/api_client.dart';
+import 'auth/passenger_auth_screen_v2.dart';
 
 class PassengerFeatureApp extends StatefulWidget {
   const PassengerFeatureApp({super.key});
@@ -11,12 +11,12 @@ class PassengerFeatureApp extends StatefulWidget {
 }
 
 class _PassengerFeatureAppState extends State<PassengerFeatureApp> {
-  late final YobalemaApi _api;
+  late final ApiClient _api;
 
   @override
   void initState() {
     super.initState();
-    _api = YobalemaApi();
+    _api = ApiClient();
   }
 
   @override
@@ -34,7 +34,7 @@ class _PassengerFeatureAppState extends State<PassengerFeatureApp> {
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFFFFCC00),
       ),
-      home: PassengerAuthScreen(api: _api),
+      home: PassengerAuthScreenV2(api: _api),
     );
   }
 }
