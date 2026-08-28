@@ -1,3 +1,5 @@
+import 'payment.dart';
+
 enum RideStatus {
   requested,
   driverAssigned,
@@ -7,8 +9,6 @@ enum RideStatus {
   completed,
   cancelled,
 }
-
-enum PaymentMethod { cash, wave, orangeMoney }
 
 class Ride {
   final String id;
