@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yobalema/core/models/ride.dart';
+import 'package:yobalema/core/models/ride_status.dart';
 import 'package:yobalema/core/state/ride_state_machine.dart';
 
 void main() {
@@ -68,6 +68,18 @@ void main() {
         ),
         throwsStateError,
       );
+    });
+
+    test('maps statuses to backend contract values', () {
+      expect(RideStatus.requested.apiValue, 'REQUESTED');
+      expect(RideStatus.driverAssigned.apiValue, 'DRIVER_ASSIGNED');
+      expect(RideStatus.driverArriving.apiValue, 'DRIVER_ARRIVING');
+      expect(RideStatus.inProgress.apiValue, 'IN_PROGRESS');
+      expect(RideStatus.paymentPending.apiValue, 'PAYMENT_PENDING');
+      expect(RideStatus.completed.apiValue, 'COMPLETED');
+      expect(RideStatus.cancelled.apiValue, 'CANCELLED');
+      expect(RideStatusX.fromApi('in_progress'), RideStatus.requested);
+      expect(RideStatusX.fromApi('IN_PROGRESS'), RideStatus.inProgress);
     });
 
     test('exposes only valid next statuses', () {
