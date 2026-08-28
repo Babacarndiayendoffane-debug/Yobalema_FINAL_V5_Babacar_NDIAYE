@@ -2,7 +2,7 @@ name: Yobalema Masterclass CI
 
 on:
   push:
-    branches: [main, feature/masterclass-production]
+    branches: [main, feature/masterclass-production, feature/remove-legacy-api]
   pull_request:
     branches: [main]
 
