@@ -37,7 +37,7 @@ class Payment {
 
   static PaymentStatus _status(String? value) => switch (value?.toUpperCase()) {
         'PROCESSING' => PaymentStatus.processing,
-        'PAID', 'SUCCESS', 'COMPLETED' => PaymentStatus.paid,
+        'PAID' || 'SUCCESS' || 'COMPLETED' => PaymentStatus.paid,
         'FAILED' => PaymentStatus.failed,
         'REFUNDED' => PaymentStatus.refunded,
         _ => PaymentStatus.pending,
