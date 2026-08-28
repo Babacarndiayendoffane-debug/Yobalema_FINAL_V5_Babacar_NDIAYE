@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api.dart';
-import 'auth/driver_auth_screen.dart';
+import '../core/network/api_client.dart';
+import 'auth/driver_auth_screen_v2.dart';
 
 class DriverFeatureApp extends StatefulWidget {
   const DriverFeatureApp({super.key});
@@ -11,12 +11,12 @@ class DriverFeatureApp extends StatefulWidget {
 }
 
 class _DriverFeatureAppState extends State<DriverFeatureApp> {
-  late final YobalemaApi _api;
+  late final ApiClient _api;
 
   @override
   void initState() {
     super.initState();
-    _api = YobalemaApi();
+    _api = ApiClient();
   }
 
   @override
@@ -34,7 +34,7 @@ class _DriverFeatureAppState extends State<DriverFeatureApp> {
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFF159947),
       ),
-      home: DriverAuthScreen(api: _api),
+      home: DriverAuthScreenV2(api: _api),
     );
   }
 }
