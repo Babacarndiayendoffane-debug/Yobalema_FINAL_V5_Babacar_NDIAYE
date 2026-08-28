@@ -1,4 +1,4 @@
-import '../models/ride.dart';
+import '../models/ride_status.dart';
 
 /// Single source of truth for the client-side ride lifecycle.
 ///
@@ -48,7 +48,5 @@ class RideStateMachine {
     return Set<RideStatus>.unmodifiable(_allowed[current] ?? const {});
   }
 
-  static bool isTerminal(RideStatus status) {
-    return status == RideStatus.completed || status == RideStatus.cancelled;
-  }
+  static bool isTerminal(RideStatus status) => status.isTerminal;
 }
