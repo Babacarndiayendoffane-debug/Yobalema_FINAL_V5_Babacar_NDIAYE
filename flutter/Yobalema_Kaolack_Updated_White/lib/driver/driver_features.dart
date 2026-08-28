@@ -1,29 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../core/network/api_client.dart';
+import '../core/app/app_services.dart';
 import 'auth/driver_auth_screen_v2.dart';
 
-class DriverFeatureApp extends StatefulWidget {
-  const DriverFeatureApp({super.key});
+class DriverFeatureApp extends StatelessWidget {
+  const DriverFeatureApp({super.key, required this.services});
 
-  @override
-  State<DriverFeatureApp> createState() => _DriverFeatureAppState();
-}
-
-class _DriverFeatureAppState extends State<DriverFeatureApp> {
-  late final ApiClient _api;
-
-  @override
-  void initState() {
-    super.initState();
-    _api = ApiClient();
-  }
-
-  @override
-  void dispose() {
-    _api.dispose();
-    super.dispose();
-  }
+  final AppServices services;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +17,7 @@ class _DriverFeatureAppState extends State<DriverFeatureApp> {
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFF159947),
       ),
-      home: DriverAuthScreenV2(api: _api),
+      home: DriverAuthScreenV2(api: services.apiClient),
     );
   }
 }
