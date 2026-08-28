@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import '../api.dart';
+import 'auth/driver_auth_screen.dart';
 
-class DriverFeatureApp extends StatefulWidget { const DriverFeatureApp({super.key}); @override State<DriverFeatureApp> createState()=>_DriverFeatureAppState(); }
-class _DriverFeatureAppState extends State<DriverFeatureApp> { final api=YobalemaApi(); @override void dispose(){api.dispose();super.dispose();} @override Widget build(BuildContext context)=>MaterialApp(debugShowCheckedModeBanner:false,title:'Yobalema Driver',theme:ThemeData(useMaterial3:true,colorSchemeSeed:const Color(0xFF159947)),home:DriverAuthScreen(api:api)); }
-
-class DriverAuthScreen extends StatefulWidget { final YobalemaApi api; const DriverAuthScreen({super.key,required this.api}); @override State<DriverAuthScreen> createState()=>_DriverAuthScreenState(); }
-class _DriverAuthScreenState extends State<DriverAuthScreen>{ final phone=TextEditingController(); final password=TextEditingController(); final name=TextEditingController(); bool loading=false;
-Future<void> submit() async { setState(()=>loading=true); try { Map<String,dynamic> data; try{data=await widget.api.login(phone.text.trim(),password.text);}catch(_){data=await widget.api.register(phone:phone.text.trim(),password:password.text,name:name.text.trim().isEmpty?'Chauffeur Yobalema':name.text.trim(),role:'DRIVER');} final user=Map<String,dynamic>.from(data['user']??{}); if(!mounted)return; Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>DriverDashboard(api:widget.api,user:user))); }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>loading=false);} }
-@override void dispose(){phone.dispose();password.dispose();name.dispose();super.dispose();}
-@override Widget build(BuildContext context)=>Scaffold(body:Center(child:SingleChildScrollView(padding:const EdgeInsets.all(24),child:Column(children:[const Icon(Icons.two_wheeler,size:72),const SizedBox(height:12),const Text('Yobalema Driver',style:TextStyle(fontSize:28,fontWeight:FontWeight.bold)),const Text('Espace réservé aux chauffeurs moto.'),const SizedBox(height:20),TextField(controller:name,decoration:const InputDecoration(labelText:'Nom',border:OutlineInputBorder())),const SizedBox(height:10),TextField(controller:phone,decoration:const InputDecoration(labelText:'Téléphone',border:OutlineInputBorder())),const SizedBox(height:10),TextField(controller:password,obscureText:true,decoration:const InputDecoration(labelText:'Mot de passe',border:OutlineInputBorder())),const SizedBox(height:16),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Connexion...':'Continuer'))])))); }
-
-class DriverDashboard extends StatefulWidget { final YobalemaApi api; final Map<String,dynamic> user; const DriverDashboard({super.key,required this.api,required this.user}); @override State<DriverDashboard> createState()=>_DriverDashboardState(); }
-class _DriverDashboardState extends State<DriverDashboard>{ bool online=false; Map<String,dynamic>? offer; String earnings='--';
-@override void initState(){super.initState(); widget.api.connectSocket(userId:widget.user['id']?.toString(),role:'DRIVER',onRideOffer:(d)=>setState(()=>offer=d)); _wallet();}
-Future<void> _wallet() async {try{final d=await widget.api.driverWallet();if(mounted)setState(()=>earnings=d.toString());}catch(_){}}
-Future<void> toggle(bool value) async {try{await widget.api.setDriverStatus(value?'ONLINE':'OFFLINE');setState(()=>online=value);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
-Future<void> accept() async {final id=offer?['id']?.toString();if(id==null)return;try{await widget.api.acceptRide(id);widget.api.joinRide(id);setState(()=>offer=null);await widget.api.rideStatus(id,'ACCEPTED');}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
-@override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Yobalema Driver')),body:Padding(padding:const EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[SwitchListTile(value:online,onChanged:toggle,title:Text(online?'Vous êtes en ligne':'Vous êtes hors ligne')),Card(child:Padding(padding:const EdgeInsets.all(16),child:Text('Mes gains : $earnings'))),const SizedBox(height:16),if(offer!=null) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Nouvelle course',style:TextStyle(fontWeight:FontWeight.bold)),Text(offer.toString()),const SizedBox(height:8),FilledButton(onPressed:accept,child:const Text('Accepter la course'))])) else const Expanded(child:Center(child:Text('En attente de demandes de courses'))),const Text('90 % chauffeur • 10 % plateforme',textAlign:TextAlign.center)])));
+class DriverFeatureApp extends StatefulWidget {
+  const DriverFeatureApp({super.key});
+  @override State<DriverFeatureApp> createState() => _DriverFeatureAppState();
+}
+class _DriverFeatureAppState extends State<DriverFeatureApp> {
+  final api = YobalemaApi();
+  @override void dispose() { api.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'Yobalema Driver',
+    theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF159947)),
+    home: DriverAuthScreen(api: api),
+  );
 }
