@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yobalema/main.dart';
+import 'package:yobalema/core/models/commune.dart';
+import 'package:yobalema/core/services/pricing_engine.dart';
 
 void main() {
   group('Pricing Automatic Context & Rules', () {
@@ -33,6 +34,19 @@ void main() {
 
       // Normal Soir / Nuit
       expect(Pricing.estimatedTrafficLevel(DateTime(2026, 1, 1, 21, 0)), 0);
+    });
+
+    test('Pricing.calculate respects the regional maximum fare', () {
+      final quote = Pricing.calculate(
+        km: 1000.0,
+        fromZone: ZoneType.village,
+        toZone: ZoneType.village,
+        night: false,
+        trafficLevel: 0,
+      );
+
+      expect(quote.total, 25000);
+      expect(quote.driver + quote.platform, quote.total);
     });
 
     test('Pricing.calculate integrates automatic context seamlessly', () {

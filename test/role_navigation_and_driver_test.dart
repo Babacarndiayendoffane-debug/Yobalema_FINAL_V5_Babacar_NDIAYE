@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yobalema/main.dart';
-import 'package:yobalema/api.dart';
+import 'package:yobalema/core/api/yobalema_api.dart';
+import 'package:yobalema/driver/screens/driver_main_screen.dart';
+import 'package:yobalema/passenger/screens/passenger_main_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -12,8 +13,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
 
       await tester.pumpWidget(MaterialApp(
-        home: HomeScreen(
-          role: Role.passenger,
+        home: PassengerMainScreen(
           phone: '+221770000001',
           api: YobalemaApi(),
           user: const {'id': 'user-pass', 'phone': '+221770000001', 'role': 'PASSENGER'},
@@ -23,8 +23,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byType(PassengerScreen), findsOneWidget);
-      expect(find.byType(DriverScreen), findsNothing);
+      expect(find.byType(PassengerMainScreen), findsOneWidget);
+      expect(find.byType(DriverMainScreen), findsNothing);
 
       // Le passager ne voit aucun outil chauffeur ni mention 90/10
       expect(find.text('Espace Chauffeur'), findsNothing);
@@ -36,8 +36,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
 
       await tester.pumpWidget(MaterialApp(
-        home: HomeScreen(
-          role: Role.driver,
+        home: DriverMainScreen(
           phone: '+221770000002',
           api: YobalemaApi(),
           user: const {'id': 'user-driver', 'phone': '+221770000002', 'role': 'DRIVER'},
@@ -47,11 +46,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byType(DriverScreen), findsOneWidget);
-      expect(find.byType(PassengerScreen), findsNothing);
+      expect(find.byType(DriverMainScreen), findsOneWidget);
+      expect(find.byType(PassengerMainScreen), findsNothing);
 
-      // Le chauffeur voit son espace dédié et son statut
-      expect(find.text('Espace Chauffeur'), findsOneWidget);
+      // Le chauffeur voit son statut et ses commandes dédiées.
+      expect(find.text('HORS LIGNE'), findsOneWidget);
       expect(find.byType(Switch), findsOneWidget);
       expect(find.textContaining('HORS LIGNE'), findsOneWidget);
 
@@ -68,7 +67,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Portefeuille Chauffeur'), findsOneWidget);
-      expect(find.textContaining('Commission garantie : 90 % chauffeur - 10 % Yobalema'), findsOneWidget);
+      expect(find.text('Commission Yobalema fixée à 10% sur chaque course.'), findsOneWidget);
     });
   });
 }

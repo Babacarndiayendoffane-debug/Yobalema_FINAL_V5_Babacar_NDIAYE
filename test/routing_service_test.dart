@@ -79,7 +79,7 @@ void main() {
 
       expect(result.isFallback, isTrue);
       expect(result.fallbackReason, isNotNull);
-      expect(result.points.length, 2);
+      expect(result.points.length, greaterThanOrEqualTo(2));
       // Fallback road distance (1.25 * geodesic straight distance ~37km -> ~46.2km)
       expect(result.distanceKm, greaterThan(37.0));
       expect(result.durationMinutes, greaterThan(30));

@@ -1,0 +1,9 @@
+{
+    "CodeGPT.apiKey": "CodeGPT Plus Beta",
+    "claudeCodeChat.permissions.yoloMode": false,
+    "dart.debugSdkLibraries": false,
+    "dart.debugExternalPackageLibraries": false,
+    "dart.warnWhenNoTestOptionConfigured": false,
+    "dart.browserLaunchUrl": "http://127.0.0.1:${port}",
+    "dart.webBrowser": "chrome"
+}
