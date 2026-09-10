@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: yobalema-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yobalema
+      POSTGRES_PASSWORD: yobalema
+      POSTGRES_DB: yobalema
+    ports:
+      - "5432:5432"
+    volumes:
+      - yobalema_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yobalema -d yobalema"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: .
+    container_name: yobalema-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://yobalema:yobalema@postgres:5432/yobalema?schema=public
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      NODE_ENV: ${NODE_ENV:-development}
+      OTP_DEV: ${OTP_DEV:-true}
+      MAX_RIDE_SEARCH_KM: ${MAX_RIDE_SEARCH_KM:-10}
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-change-payment-secret}
+    ports:
+      - "4000:4000"
+
+volumes:
+  yobalema_pg:

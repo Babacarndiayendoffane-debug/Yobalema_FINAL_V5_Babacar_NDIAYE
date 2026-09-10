@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  DRIVER_ARRIVING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ZoneType {
+  CITY
+  PERIURBAN
+  VILLAGE
+}
+
+enum PaymentMethod {
+  CASH
+  WAVE
+  ORANGE_MONEY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum NotificationType {
+  RIDE
+  PAYMENT
+  SYSTEM
+  SUPPORT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum WalletType {
+  DRIVER_PLATFORM
+}
+
+enum WalletEntryType {
+  CREDIT
+  DEBIT
+}
+
+model User {
+  id              String       @id @default(cuid())
+  phone           String       @unique
+  passwordHash    String
+  name            String?
+  role            Role         @default(PASSENGER)
+  phoneVerifiedAt DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  driver          Driver?
+  passengerRides  Ride[]       @relation("PassengerRides")
+  driverRides     Ride[]       @relation("DriverRides")
+  ratingsGiven    Rating[]     @relation("RatingsGiven")
+  ratingsReceived Rating[]     @relation("RatingsReceived")
+  otpCodes        OtpCode[]
+  notifications  Notification[]
+  supportTickets SupportTicket[]
+  walletEntries   WalletEntry[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  consumedAt DateTime?
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  @@index([userId, expiresAt])
+}
+
+model Notification {
+  id        String @id @default(cuid())
+  userId    String
+  user      User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  dataJson  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+
+model SupportTicket {
+  id        String @id @default(cuid())
+  userId    String
+  user      User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  subject   String
+  message   String
+  status    TicketStatus @default(OPEN)
+  adminNote String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, status])
+}
+
+model WalletEntry {
+  id        String @id @default(cuid())
+  userId    String
+  user      User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  type      WalletEntryType
+  wallet    WalletType @default(DRIVER_PLATFORM)
+  amountFcfa Int
+  reference String?
+  note      String?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+
+model Driver {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status              DriverStatus       @default(OFFLINE)
+  lat                 Float?
+  lng                 Float?
+  vehicleType         String?
+  vehiclePlate        String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  verificationNote   String?
+  rating              Float              @default(5)
+  totalTrips          Int                @default(0)
+  updatedAt           DateTime           @updatedAt
+}
+
+model Ride {
+  id              String        @id @default(cuid())
+  passengerId     String
+  driverId        String?
+  passenger       User          @relation("PassengerRides", fields: [passengerId], references: [id])
+  driver          User?         @relation("DriverRides", fields: [driverId], references: [id])
+  fromName        String
+  toName          String
+  fromLat         Float
+  fromLng         Float
+  toLat           Float
+  toLng           Float
+  distanceKm      Float
+  zone            ZoneType
+  trafficLevel    Int           @default(0)
+  night           Boolean       @default(false)
+  priceFcfa       Int
+  driverEarnings  Int
+  platformFee     Int
+  status          RideStatus    @default(REQUESTED)
+  shareTrip       Boolean       @default(false)
+  paymentMethod   PaymentMethod @default(CASH)
+  paymentStatus   PaymentStatus @default(PENDING)
+  otpPickupHash   String?
+  pickupVerifiedAt DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  payment         Payment?
+  ratings         Rating[]
+  @@index([passengerId, createdAt])
+  @@index([driverId, status])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  rideId        String        @unique
+  ride          Ride          @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  method        PaymentMethod
+  amountFcfa    Int
+  status        PaymentStatus @default(PENDING)
+  providerRef   String?
+  createdAt     DateTime      @default(now())
+  paidAt        DateTime?
+}
+
+model Rating {
+  id         String   @id @default(cuid())
+  rideId     String
+  ride       Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  fromUserId String
+  fromUser   User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User     @relation("RatingsReceived", fields: [toUserId], references: [id])
+  score      Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  @@unique([rideId, fromUserId])
+}
